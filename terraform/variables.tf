@@ -13,10 +13,13 @@ variable "ssh_public_key_path" {
   default = "~/.ssh/id_ed25519.pub"
 }
 
-variable "admin_cidr" {
-  type = string
+variable "admin_cidrs" {
+  type = list(string)
+
   validation {
-    condition     = can(cidrnetmask(var.admin_cidr))
-    error_message = "admin_cidr must be a valid CIDR, e.g. 203.0.113.10/32."
+    condition = alltrue([
+      for cidr in var.admin_cidrs : can(cidrnetmask(cidr))
+    ])
+    error_message = "All admin_cidrs must be valid CIDRs, e.g. 203.0.113.10/32."
   }
 }

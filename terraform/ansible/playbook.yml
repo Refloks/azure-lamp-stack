@@ -1,0 +1,74 @@
+---
+- name: Deploy LAMP stack to Azure VM
+  hosts: lamp
+  become: true
+
+  vars:
+    repo_url: "https://github.com/Refloks/azure-lamp-stack.git"
+    app_dir: "/opt/lamp_docker"
+    mysql_root_password: "CHANGE_ME_ROOT"
+    mysql_database: "lampdb"
+    mysql_user: "lampuser"
+    mysql_password: "CHANGE_ME_USER"
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: true
+
+    - name: Install prerequisite packages
+      apt:
+        name:
+          - ca-certificates
+          - curl
+          - gnupg
+          - git
+        state: present
+
+    - name: Add Docker's official GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker apt repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Install Docker Engine and Compose plugin
+      apt:
+        update_cache: true
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+
+    - name: Add azureadmin to docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: true
+
+    - name: Clone or update the application repository
+      git:
+        repo: "{{ https://github.com/Refloks/azure-lamp-stack }}"
+        dest: "{{ app_dir }}"
+        version: main
+        force: true
+
+    - name: Generate .env file with secrets
+      copy:
+        dest: "{{ app_dir }}/.env"
+        content: |
+          MYSQL_ROOT_PASSWORD={{ 7IJcqcHLN8PDggrN0eUIzhyYjWrVrEHc }}
+          MYSQL_DATABASE={{ mysql_database }}
+          MYSQL_USER={{ mysql_user }}
+          MYSQL_PASSWORD={{ 6HFGqS3mYNDW3lDiE/WiHjxQ6Lpm72+i }}
+        mode: '0600'
+
+    - name: Start LAMP stack with Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_dir }}"
+        state: present
