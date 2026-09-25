@@ -1,0 +1,51 @@
+---
+- name: Configure host security
+  hosts: web
+  become: true
+
+  tasks:
+    - name: Install Fail2ban
+      ansible.builtin.apt:
+        name: fail2ban
+        state: present
+        update_cache: true
+
+    - name: Configure Fail2ban defaults
+      ansible.builtin.copy:
+        dest: /etc/fail2ban/jail.local
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [DEFAULT]
+          bantime = 10m
+          findtime = 10m
+          maxretry = 5
+          backend = systemd
+          ignoreip = 152.115.77.163 77.33.83.235
+
+          [sshd]
+          enabled = true
+          port = ssh
+          filter = sshd
+
+    - name: Enable and start Fail2ban
+      ansible.builtin.systemd:
+        name: fail2ban
+        enabled: true
+        state: restarted
+
+    - name: Verify Fail2ban configuration
+      ansible.builtin.command:
+        cmd: fail2ban-client -t
+      changed_when: false
+
+    - name: Show SSH jail status
+      ansible.builtin.command:
+        cmd: fail2ban-client status sshd
+      register: fail2ban_sshd_status
+      changed_when: false
+
+    - name: Display SSH jail status
+      ansible.builtin.debug:
+        var: fail2ban_sshd_status.stdout_lines
