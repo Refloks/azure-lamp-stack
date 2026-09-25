@@ -4,7 +4,7 @@ services:
     build: ./apache-php
     container_name: lamp_web
     ports:
-      - "8080:80"
+      - "80:80"
     volumes:
       - ./src:/var/www/html
     depends_on:

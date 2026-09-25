@@ -1,15 +1,14 @@
 ---
 - name: Deploy LAMP stack to Azure VM
-  hosts: lamp
+  hosts: web
   become: true
+
+  vars_files:
+    - vars/secrets.yml
 
   vars:
     repo_url: "https://github.com/Refloks/azure-lamp-stack.git"
     app_dir: "/opt/lamp_docker"
-    mysql_root_password: "CHANGE_ME_ROOT"
-    mysql_database: "lampdb"
-    mysql_user: "lampuser"
-    mysql_password: "CHANGE_ME_USER"
 
   tasks:
     - name: Update apt cache
@@ -32,7 +31,7 @@
 
     - name: Add Docker apt repository
       apt_repository:
-        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_facts['distribution_release'] }} stable"
         state: present
 
     - name: Install Docker Engine and Compose plugin
@@ -53,19 +52,19 @@
 
     - name: Clone or update the application repository
       git:
-        repo: "{{ https://github.com/Refloks/azure-lamp-stack }}"
+        repo: "{{ repo_url }}"
         dest: "{{ app_dir }}"
-        version: main
-        force: true
+        version: master
+        update: true
 
     - name: Generate .env file with secrets
       copy:
         dest: "{{ app_dir }}/.env"
         content: |
-          MYSQL_ROOT_PASSWORD={{ 7IJcqcHLN8PDggrN0eUIzhyYjWrVrEHc }}
+          MYSQL_ROOT_PASSWORD={{ mysql_root_password }}
           MYSQL_DATABASE={{ mysql_database }}
           MYSQL_USER={{ mysql_user }}
-          MYSQL_PASSWORD={{ 6HFGqS3mYNDW3lDiE/WiHjxQ6Lpm72+i }}
+          MYSQL_PASSWORD={{ mysql_password }}
         mode: '0600'
 
     - name: Start LAMP stack with Docker Compose
